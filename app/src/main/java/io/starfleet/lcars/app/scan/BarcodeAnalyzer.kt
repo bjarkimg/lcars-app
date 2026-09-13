@@ -19,8 +19,6 @@ class BarcodeAnalyzer(
                 Barcode.FORMAT_EAN_8,
                 Barcode.FORMAT_UPC_A,
                 Barcode.FORMAT_UPC_E,
-                Barcode.FORMAT_CODE_128,
-                Barcode.FORMAT_ITF,
             )
             .build(),
     )
@@ -35,9 +33,10 @@ class BarcodeAnalyzer(
         val image = InputImage.fromMediaImage(media, imageProxy.imageInfo.rotationDegrees)
         scanner.process(image)
             .addOnSuccessListener { codes ->
-                val raw = codes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
-                val digits = raw?.filter { it.isDigit() }.orEmpty()
-                if (digits.length >= 8) onBarcode(digits)
+                val code = codes
+                    .mapNotNull { normalizeRetailBarcode(it.rawValue) }
+                    .firstOrNull()
+                if (code != null) onBarcode(code)
             }
             .addOnCompleteListener { imageProxy.close() }
     }

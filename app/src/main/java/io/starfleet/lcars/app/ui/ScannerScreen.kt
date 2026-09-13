@@ -139,7 +139,7 @@ fun ScannerScreen(vm: PantryViewModel) {
                 .fillMaxWidth()
                 .height(220.dp)
                 .background(Panel)
-                .border(1.dp, Gold.copy(alpha = 0.5f)),
+                .border(1.dp, if (state.holding) Amber else Gold.copy(alpha = 0.5f)),
         ) {
             if (state.cameraOn && state.location.isNotBlank()) {
                 CameraPane(
@@ -155,6 +155,19 @@ fun ScannerScreen(vm: PantryViewModel) {
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.align(Alignment.Center).padding(12.dp),
                 )
+            }
+            if (state.holding) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.55f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("HOLD ${state.holdLeftSec}s", color = Amber, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Text("MOVE THE PACK", color = Ice, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
             }
         }
 

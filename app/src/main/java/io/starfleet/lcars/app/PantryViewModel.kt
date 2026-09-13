@@ -7,7 +7,10 @@ import io.starfleet.lcars.app.data.BAYS
 import io.starfleet.lcars.app.data.PantryApi
 import io.starfleet.lcars.app.data.PantryItem
 import io.starfleet.lcars.app.data.bayLabel
+import io.starfleet.lcars.app.scan.normalizeRetailBarcode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -22,6 +25,8 @@ data class PantryUiState(
     val status: String = "VELDU STAÐSETNINGU",
     val online: Boolean = false,
     val cameraOn: Boolean = true,
+    val holding: Boolean = false,
+    val holdLeftSec: Int = 0,
     val manualName: String = "",
 )
 
@@ -35,7 +40,8 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
     val state: StateFlow<PantryUiState> = _state
 
     private var lastCode = ""
-    private var lastCodeAt = 0L
+    private var inFlight = false
+    private var holdJob: Job? = null
 
     init {
         val saved = _state.value.location
@@ -63,11 +69,10 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun onBarcode(code: String) {
-        val now = System.currentTimeMillis()
-        if (code == lastCode && now - lastCodeAt < 1500) return
-        lastCode = code
-        lastCodeAt = now
-        scan(code)
+        val clean = normalizeRetailBarcode(code) ?: return
+        if (_state.value.holding || inFlight) return
+        if (clean == lastCode) return
+        scan(clean)
     }
 
     fun scan(code: String) {
@@ -76,6 +81,9 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
             _state.update { it.copy(status = "VELDU STAÐSETNINGU FYRST") }
             return
         }
+        if (inFlight || _state.value.holding) return
+        inFlight = true
+        lastCode = code
         viewModelScope.launch {
             _state.update { it.copy(status = "LOGGING $code") }
             val result = withContext(Dispatchers.IO) {
@@ -84,6 +92,7 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
             result.fold(
                 onSuccess = { scan ->
                     if (!scan.success || scan.item == null) {
+                        lastCode = ""
                         _state.update { it.copy(status = scan.error ?: "SCAN REJECTED") }
                     } else {
                         upsert(scan.item)
@@ -93,12 +102,35 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
                                 status = "LOGGED ${scan.item.qty} ${scan.item.unit} ${scan.item.name} · ${bayLabel(scan.item.location)}",
                             )
                         }
+                        startHold()
                     }
                 },
                 onFailure = { err ->
+                    lastCode = ""
                     _state.update { it.copy(online = false, status = "LINK OFFLINE · ${err.message}") }
                 },
             )
+            inFlight = false
+        }
+    }
+
+    private fun startHold() {
+        holdJob?.cancel()
+        _state.update { it.copy(holding = true, holdLeftSec = HOLD_SEC) }
+        holdJob = viewModelScope.launch {
+            val total = HOLD_SEC
+            for (left in total downTo 1) {
+                _state.update { it.copy(holdLeftSec = left, status = "HOLD ${left}s · MOVE THE PACK") }
+                delay(1000)
+            }
+            lastCode = ""
+            _state.update {
+                it.copy(
+                    holding = false,
+                    holdLeftSec = 0,
+                    status = "READY · ${bayLabel(it.location)}",
+                )
+            }
         }
     }
 
@@ -175,5 +207,6 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
 
     companion object {
         private const val KEY_LOCATION = "location"
+        private const val HOLD_SEC = 4
     }
 }
