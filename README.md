@@ -10,6 +10,14 @@ The food database stays on the container:
 
 No Krónan token in the APK. Name lookup (Krónan → Open Food Facts) happens on the server.
 
+## Download APK
+
+Sideload this on the Fold (not on Play Store):
+
+**https://github.com/bjarkimg/lcars-app/releases/latest**
+
+File: `lcars-provisions-debug.apk`. Android will warn it is not from Play — allow install from the browser/Files app, then allow **camera**.
+
 ## Why this repo exists
 
 `lcars-fold` is the LAN console (browser + Python bridge). Live camera needs a **secure context**; the site is `http://192.168.68.123`. This app is native so the Fold can point-and-beep on the cover screen.
