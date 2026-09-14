@@ -11,18 +11,21 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -62,7 +66,6 @@ private val Lilac = Color(0xFFCC99CC)
 private val Salmon = Color(0xFFFF6666)
 private val Panel = Color(0xFF0A0A0A)
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScannerScreen(vm: PantryViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -90,6 +93,7 @@ fun ScannerScreen(vm: PantryViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .windowInsetsPadding(WindowInsets.systemBars)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -117,8 +121,24 @@ fun ScannerScreen(vm: PantryViewModel) {
             maxLines = 2,
         )
 
-        Text("STAÐSETNING", color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            LcarsChip("INTAKE", state.mode == "in", Amber) { vm.setMode("in") }
+            LcarsChip("USE", state.mode == "use", Salmon) { vm.setMode("use") }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("STAÐ", color = Gold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             BAYS.forEach { bay ->
                 LcarsChip(
                     label = bay.label,
@@ -129,15 +149,11 @@ fun ScannerScreen(vm: PantryViewModel) {
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            LcarsChip("INTAKE", state.mode == "in", Amber) { vm.setMode("in") }
-            LcarsChip("USE", state.mode == "use", Salmon) { vm.setMode("use") }
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(180.dp)
+                .clipToBounds()
                 .background(Panel)
                 .border(1.dp, if (state.holding) Amber else Gold.copy(alpha = 0.5f)),
         ) {
@@ -164,6 +180,27 @@ fun ScannerScreen(vm: PantryViewModel) {
                     .height(88.dp)
                     .border(1.5.dp, Gold.copy(alpha = 0.85f), RoundedCornerShape(2.dp)),
             )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .background(Color.Black.copy(alpha = 0.72f), RoundedCornerShape(2.dp))
+                    .clickable {
+                        val ids = BAYS.map { it.id }
+                        val i = ids.indexOf(state.location).let { if (it < 0) 0 else (it + 1) % ids.size }
+                        vm.pickLocation(ids[i])
+                    }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (state.location.isBlank()) "VELDU STAÐ ▸" else "${bayLabel(state.location).uppercase()} ▸",
+                    color = Gold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -300,7 +337,8 @@ private fun LcarsChip(label: String, selected: Boolean, color: Color, onClick: (
         modifier = Modifier
             .background(if (selected) color else Color(0xFF111111), RoundedCornerShape(2.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .border(1.dp, if (selected) color else color.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
             label,
