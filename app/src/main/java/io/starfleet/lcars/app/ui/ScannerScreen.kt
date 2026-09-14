@@ -144,6 +144,7 @@ fun ScannerScreen(vm: PantryViewModel) {
             if (state.cameraOn && state.location.isNotBlank()) {
                 CameraPane(
                     enabled = true,
+                    zoom = state.zoom,
                     onBarcode = vm::onBarcode,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -155,6 +156,34 @@ fun ScannerScreen(vm: PantryViewModel) {
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.align(Alignment.Center).padding(12.dp),
                 )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.72f)
+                    .height(88.dp)
+                    .border(1.5.dp, Gold.copy(alpha = 0.85f), RoundedCornerShape(2.dp)),
+            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                listOf(1f, 2f, 3f).forEach { z ->
+                    val selected = state.zoom == z
+                    Text(
+                        "${z.toInt()}×",
+                        color = if (selected) Color.Black else Gold,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .background(if (selected) Gold else Color.Black.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+                            .clickable { vm.setZoom(z) }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
             if (state.holding) {
                 Box(

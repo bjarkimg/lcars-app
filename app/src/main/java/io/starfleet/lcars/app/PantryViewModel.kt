@@ -25,6 +25,7 @@ data class PantryUiState(
     val status: String = "VELDU STAÐSETNINGU",
     val online: Boolean = false,
     val cameraOn: Boolean = true,
+    val zoom: Float = 2f,
     val holding: Boolean = false,
     val holdLeftSec: Int = 0,
     val manualName: String = "",
@@ -35,7 +36,10 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
     private val api = PantryApi()
 
     private val _state = MutableStateFlow(
-        PantryUiState(location = prefs.getString(KEY_LOCATION, "") ?: ""),
+        PantryUiState(
+            location = prefs.getString(KEY_LOCATION, "") ?: "",
+            zoom = prefs.getFloat(KEY_ZOOM, 2f).coerceIn(1f, 3f),
+        ),
     )
     val state: StateFlow<PantryUiState> = _state
 
@@ -66,6 +70,12 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setCameraOn(on: Boolean) {
         _state.update { it.copy(cameraOn = on) }
+    }
+
+    fun setZoom(zoom: Float) {
+        val next = zoom.coerceIn(1f, 3f)
+        prefs.edit().putFloat(KEY_ZOOM, next).apply()
+        _state.update { it.copy(zoom = next) }
     }
 
     fun onBarcode(code: String) {
@@ -207,6 +217,7 @@ class PantryViewModel(application: Application) : AndroidViewModel(application) 
 
     companion object {
         private const val KEY_LOCATION = "location"
+        private const val KEY_ZOOM = "zoom"
         private const val HOLD_SEC = 4
     }
 }

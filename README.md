@@ -44,7 +44,7 @@ Same LAN as `192.168.68.123`. If you change the LCARS IP, edit `PantryApi.DEFAUL
 ## Scan flow
 
 1. Pick location (sticky after first pick).
-2. Point the back camera at an EAN/UPC.
+2. Point the back camera at an EAN/UPC. Default zoom is **2×** (1× / 2× / 3× on the viewfinder). Aim the gold box at the bars.
 3. Debounce 1.5s on the same code so it doesn’t double-count.
 4. Server logs qty + looks up the name.
 5. Inventory list updates; newest on top.
